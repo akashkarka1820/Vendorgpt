@@ -12,5 +12,3 @@ pydub>=0.25.1
 numpy>=1.26.0
 email-validator
 tzdata
-transformers>=4.40.0
-torch>=2.2.0

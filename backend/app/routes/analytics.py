@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -10,7 +11,7 @@ from app.models import (
     TransactionItem,
     Product,
     Customer,
-    User
+    User,
 )
 from app.utils.security import get_current_user
 
@@ -22,6 +23,56 @@ router = APIRouter(
 
 
 # ---------------------------------------------------------
+# TIMEZONE HELPERS
+# ---------------------------------------------------------
+
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def get_ist_now():
+    """
+    Get current date/time in India Standard Time.
+    """
+    return datetime.now(IST)
+
+
+def ist_day_start_as_utc_naive():
+    """
+    Return today's IST midnight as a UTC-naive datetime.
+
+    Database timestamps are stored using datetime.utcnow(),
+    so comparisons with SQLite must use UTC-naive values.
+    """
+    ist_now = get_ist_now()
+
+    ist_midnight = datetime(
+        ist_now.year,
+        ist_now.month,
+        ist_now.day,
+        0,
+        0,
+        0,
+        tzinfo=IST
+    )
+
+    utc_midnight = ist_midnight.astimezone(timezone.utc)
+
+    return utc_midnight.replace(tzinfo=None)
+
+
+def utc_naive_to_ist(dt):
+    """
+    Convert a UTC-naive database datetime to IST.
+    """
+    if dt is None:
+        return None
+
+    utc_dt = dt.replace(tzinfo=timezone.utc)
+
+    return utc_dt.astimezone(IST)
+
+
+# ---------------------------------------------------------
 # DASHBOARD
 # ---------------------------------------------------------
 
@@ -30,10 +81,9 @@ def get_dashboard_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    today_start = datetime.combine(
-        datetime.now().date(),
-        datetime.min.time()
-    )
+
+    # Today's midnight in IST converted to UTC.
+    today_start = ist_day_start_as_utc_naive()
 
     # -----------------------------------------------------
     # TODAY'S REVENUE & BILL COUNT
@@ -223,27 +273,59 @@ def get_sales_analytics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    now = datetime.now()
+
+    # Current time in IST
+    now = get_ist_now()
+
+    # -----------------------------------------------------
+    # DETERMINE DATE RANGE
+    # -----------------------------------------------------
 
     if timeframe == "today":
 
-        start_date = datetime.combine(
-            now.date(),
-            datetime.min.time()
+        # Today's IST midnight
+        ist_start = datetime(
+            now.year,
+            now.month,
+            now.day,
+            0,
+            0,
+            0,
+            tzinfo=IST
+        )
+
+        # Convert to UTC-naive for SQLite
+        start_date = (
+            ist_start
+            .astimezone(timezone.utc)
+            .replace(tzinfo=None)
         )
 
         days_count = 1
 
     elif timeframe == "30days":
 
-        start_date = now - timedelta(days=30)
+        # 30 days ago based on IST
+        ist_start = now - timedelta(days=30)
+
+        start_date = (
+            ist_start
+            .astimezone(timezone.utc)
+            .replace(tzinfo=None)
+        )
 
         days_count = 30
 
     else:
 
         # 7 days default
-        start_date = now - timedelta(days=7)
+        ist_start = now - timedelta(days=7)
+
+        start_date = (
+            ist_start
+            .astimezone(timezone.utc)
+            .replace(tzinfo=None)
+        )
 
         days_count = 7
 
@@ -261,19 +343,21 @@ def get_sales_analytics(
     )
 
     # -----------------------------------------------------
-    # AGGREGATE SALES BY DATE
+    # AGGREGATE SALES BY IST DATE
     # -----------------------------------------------------
 
     sales_by_date = {}
 
     for i in range(days_count):
 
-        day_key = (
+        day = (
             now
             - timedelta(
                 days=days_count - 1 - i
             )
-        ).strftime("%Y-%m-%d")
+        )
+
+        day_key = day.strftime("%Y-%m-%d")
 
         sales_by_date[day_key] = {
             "date": day_key,
@@ -281,9 +365,18 @@ def get_sales_analytics(
             "bills": 0
         }
 
+    # Convert every transaction timestamp
+    # from UTC to IST before grouping.
     for transaction in transactions:
 
-        d_key = transaction.created_at.strftime(
+        transaction_ist = utc_naive_to_ist(
+            transaction.created_at
+        )
+
+        if transaction_ist is None:
+            continue
+
+        d_key = transaction_ist.strftime(
             "%Y-%m-%d"
         )
 
@@ -299,15 +392,27 @@ def get_sales_analytics(
         sales_by_date.values()
     )
 
+    # -----------------------------------------------------
+    # TOTAL PERIOD REVENUE
+    # -----------------------------------------------------
+
     total_period_revenue = sum(
         item["revenue"]
         for item in chart_data
     )
 
+    # -----------------------------------------------------
+    # TOTAL PERIOD BILLS
+    # -----------------------------------------------------
+
     total_period_bills = sum(
         item["bills"]
         for item in chart_data
     )
+
+    # -----------------------------------------------------
+    # AVERAGE BILL VALUE
+    # -----------------------------------------------------
 
     avg_bill_value = (
         total_period_revenue
@@ -315,6 +420,10 @@ def get_sales_analytics(
         if total_period_bills > 0
         else 0.0
     )
+
+    # -----------------------------------------------------
+    # RESPONSE
+    # -----------------------------------------------------
 
     return {
         "timeframe": timeframe,
@@ -340,6 +449,7 @@ def get_product_analytics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+
     # -----------------------------------------------------
     # CATEGORY SALES
     # -----------------------------------------------------
@@ -404,6 +514,10 @@ def get_product_analytics(
         }
         for method in method_sales
     ]
+
+    # -----------------------------------------------------
+    # RESPONSE
+    # -----------------------------------------------------
 
     return {
         "category_sales": cat_data,

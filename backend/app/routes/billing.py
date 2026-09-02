@@ -38,7 +38,7 @@ def generate_invoice_number(
     user_id: int
 ) -> str:
     """
-    Generates an invoice number for the current vendor.
+    Generates a globally unique invoice number.
 
     Example:
     INV-2026-00001
@@ -46,17 +46,19 @@ def generate_invoice_number(
 
     year = datetime.now().year
 
-    count = (
-        db.query(Transaction)
-        .filter(
-            Transaction.user_id == user_id
-        )
-        .count()
-        + 1
-    )
+    # Start with the total number of transactions.
+    count = db.query(Transaction).count() + 1
 
-    return f"INV-{year}-{count:05d}"
+    invoice_number = f"INV-{year}-{count:05d}"
 
+    # Make sure the number is globally unique.
+    while db.query(Transaction).filter(
+        Transaction.invoice_number == invoice_number
+    ).first():
+        count += 1
+        invoice_number = f"INV-{year}-{count:05d}"
+
+    return invoice_number
 
 # ---------------------------------------------------------
 # BILL PREVIEW

@@ -66,31 +66,3 @@ def debug_ffmpeg():
         "ffmpeg_installed": ffmpeg_path is not None,
         "ffmpeg_path": ffmpeg_path
     }
-@app.get("/debug/asr")
-def debug_asr():
-    result = {}
-
-    try:
-        import torch
-        result["torch_installed"] = True
-        result["torch_version"] = torch.__version__
-    except Exception as e:
-        result["torch_installed"] = False
-        result["torch_error"] = str(e)
-
-    try:
-        import transformers
-        result["transformers_installed"] = True
-        result["transformers_version"] = transformers.__version__
-    except Exception as e:
-        result["transformers_installed"] = False
-        result["transformers_error"] = str(e)
-
-    try:
-        from transformers import pipeline
-        result["transformers_pipeline"] = True
-    except Exception as e:
-        result["transformers_pipeline"] = False
-        result["pipeline_error"] = str(e)
-
-    return result

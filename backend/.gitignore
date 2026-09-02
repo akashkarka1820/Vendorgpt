@@ -1,0 +1,3 @@
+data/vendorgpt.db
+__pycache__/
+*.pyc

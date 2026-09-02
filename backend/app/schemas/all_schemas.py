@@ -157,7 +157,7 @@ class ValidationItemOut(BaseModel):
     matched_gst_percentage: Optional[float] = None
     confidence: float
     status: str  # "confirmed", "suggestion", "not_found"
-    suggested_products: List[dict] = []
+    suggested_products: List[dict] = Field(default_factory=list)
 
 class ValidationResponse(BaseModel):
     items: List[ValidationItemOut]

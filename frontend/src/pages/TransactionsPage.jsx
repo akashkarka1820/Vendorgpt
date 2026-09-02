@@ -102,7 +102,7 @@ export default function TransactionsPage() {
                         <Eye size={16} />
                       </button>
                       <a
-                        href={`http://127.0.0.1:8000/api/transactions/${t.id}/pdf`}
+                        href={`https://vendorgpt-1.onrender.com/api/transactions/${t.id}/pdf`}
                         target="_blank"
                         rel="noreferrer"
                         className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50"
@@ -173,7 +173,7 @@ export default function TransactionsPage() {
 
             <div className="flex gap-2">
               <a
-                href={`http://127.0.0.1:8000/api/transactions/${selectedTx.id}/pdf`}
+                href={`https://vendorgpt-1.onrender.com/api/transactions/${selectedTx.id}/pdf`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-500"

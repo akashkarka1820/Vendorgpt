@@ -289,7 +289,7 @@ uvicorn app.main:app --reload
 Backend:
 
 ```
-http://127.0.0.1:8000
+https://vendorgpt-1.onrender.com
 ```
 
 ---

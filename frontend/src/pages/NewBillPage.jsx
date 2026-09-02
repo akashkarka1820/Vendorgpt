@@ -725,7 +725,7 @@ export default function NewBillPage() {
 
             <div className="flex gap-3">
               <a
-                href={`http://127.0.0.1:8000/api/transactions/${checkoutSuccessInvoice.transaction_id}/pdf`}
+                href={`https://vendorgpt-1.onrender.com/api/transactions/${checkoutSuccessInvoice.transaction_id}/pdf`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-3 rounded-2xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-800"

@@ -1,4 +1,3 @@
-import shutil
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,14 +54,4 @@ def root():
         "status": "online",
         "version": "1.0.0",
         "documentation": "/docs"
-    }
-
-
-@app.get("/debug/ffmpeg")
-def debug_ffmpeg():
-    ffmpeg_path = shutil.which("ffmpeg")
-
-    return {
-        "ffmpeg_installed": ffmpeg_path is not None,
-        "ffmpeg_path": ffmpeg_path
     }

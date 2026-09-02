@@ -724,14 +724,40 @@ export default function NewBillPage() {
             </div>
 
             <div className="flex gap-3">
-              <a
-                href={`https://vendorgpt-1.onrender.com/api/transactions/${checkoutSuccessInvoice.transaction_id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 py-3 rounded-2xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-800"
-              >
-                <Download size={16} /> Download PDF
-              </a>
+             <button
+  onClick={async () => {
+    try {
+      const response = await api.get(
+        `/transactions/${checkoutSuccessInvoice.transaction_id}/pdf`,
+        {
+          responseType: 'blob',
+        }
+      );
+
+      const blob = new Blob([response.data], {
+        type: 'application/pdf',
+      });
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${checkoutSuccessInvoice.invoice_number || 'invoice'}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF download failed:', error);
+      alert('Failed to download bill. Please try again.');
+    }
+  }}
+  className="flex-1 py-3 rounded-2xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-800"
+>
+  <Download size={16} /> Download PDF
+</button>
               <button
                 onClick={() => setCheckoutSuccessInvoice(null)}
                 className="flex-1 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-emerald-500"
